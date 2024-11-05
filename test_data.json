@@ -1,0 +1,42 @@
+[
+    {
+        "title": "Customer Data",
+        "description": "Contains information on customer demographics, including age, gender, and location."
+    },
+    {
+        "title": "Product Catalog",
+        "description": "A list of products with detailed specifications, pricing, and availability status."
+    },
+    {
+        "title": "Sales Transactions",
+        "description": "Records of all sales transactions, including product IDs, quantities sold, and transaction dates."
+    },
+    {
+        "title": "Employee Directory",
+        "description": "An employee database with names, job titles, departments, and contact information."
+    },
+    {
+        "title": "Website Analytics",
+        "description": "Tracking data from a website, including page views, session duration, and user geography."
+    },
+    {
+        "title": "Weather Data",
+        "description": "Historical weather data with temperature, precipitation, and wind speed readings."
+    },
+    {
+        "title": "Social Media Mentions",
+        "description": "Data on social media mentions, including keywords, sentiment analysis, and engagement levels."
+    },
+    {
+        "title": "Financial Transactions",
+        "description": "Records of financial transactions with amounts, timestamps, and categories."
+    },
+    {
+        "title": "Inventory Levels",
+        "description": "Current stock levels for products across different warehouses and locations."
+    },
+    {
+        "title": "User Feedback",
+        "description": "Feedback collected from users on products and services, including ratings and comments."
+    }
+]
