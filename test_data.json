@@ -1,42 +1,72 @@
 [
     {
-        "title": "Customer Data",
-        "description": "Contains information on customer demographics, including age, gender, and location."
+        "timestamp": "00:02:36.000-00:02:36.500",
+        "bpm": 120,
+        "genre": "ToDo",
+        "mood": [0.2, 0.1, 0.15, 0.2, 0.25, 0.1],
+        "frequency": [
+            {"frequency": 100, "amplitude": 0.7},
+            {"frequency": 200, "amplitude": 0.5},
+            {"frequency": 300, "amplitude": 0.4},
+            {"frequency": 400, "amplitude": 0.6}
+        ],
+        "volume": 83.0,
+        "instruments": [true, false, true, true, false]
     },
     {
-        "title": "Product Catalog",
-        "description": "A list of products with detailed specifications, pricing, and availability status."
+        "timestamp": "00:02:36.500-00:02:37.000",
+        "bpm": 130,
+        "genre": "ToDo",
+        "mood": [0.15, 0.2, 0.3, 0.1, 0.15, 0.1],
+        "frequency": [
+            {"frequency": 110, "amplitude": 0.6},
+            {"frequency": 220, "amplitude": 0.7},
+            {"frequency": 330, "amplitude": 0.5},
+            {"frequency": 440, "amplitude": 0.4}
+        ],
+        "volume": 78.5,
+        "instruments": [false, true, true, false, true]
     },
     {
-        "title": "Sales Transactions",
-        "description": "Records of all sales transactions, including product IDs, quantities sold, and transaction dates."
+        "timestamp": "00:02:37.000-00:02:37.500",
+        "bpm": 125,
+        "genre": "ToDo",
+        "mood": [0.25, 0.1, 0.15, 0.05, 0.35, 0.1],
+        "frequency": [
+            {"frequency": 120, "amplitude": 0.8},
+            {"frequency": 240, "amplitude": 0.6},
+            {"frequency": 360, "amplitude": 0.4},
+            {"frequency": 480, "amplitude": 0.7}
+        ],
+        "volume": 85.0,
+        "instruments": [true, true, false, false, true]
     },
     {
-        "title": "Employee Directory",
-        "description": "An employee database with names, job titles, departments, and contact information."
+        "timestamp": "00:02:37.500-00:02:38.000",
+        "bpm": 118,
+        "genre": "ToDo",
+        "mood": [0.1, 0.15, 0.25, 0.2, 0.2, 0.1],
+        "frequency": [
+            {"frequency": 130, "amplitude": 0.5},
+            {"frequency": 260, "amplitude": 0.4},
+            {"frequency": 390, "amplitude": 0.6},
+            {"frequency": 520, "amplitude": 0.5}
+        ],
+        "volume": 81.0,
+        "instruments": [false, true, true, true, false]
     },
     {
-        "title": "Website Analytics",
-        "description": "Tracking data from a website, including page views, session duration, and user geography."
-    },
-    {
-        "title": "Weather Data",
-        "description": "Historical weather data with temperature, precipitation, and wind speed readings."
-    },
-    {
-        "title": "Social Media Mentions",
-        "description": "Data on social media mentions, including keywords, sentiment analysis, and engagement levels."
-    },
-    {
-        "title": "Financial Transactions",
-        "description": "Records of financial transactions with amounts, timestamps, and categories."
-    },
-    {
-        "title": "Inventory Levels",
-        "description": "Current stock levels for products across different warehouses and locations."
-    },
-    {
-        "title": "User Feedback",
-        "description": "Feedback collected from users on products and services, including ratings and comments."
+        "timestamp": "00:02:38.000-00:02:38.500",
+        "bpm": 135,
+        "genre": "ToDo",
+        "mood": [0.05, 0.2, 0.2, 0.25, 0.15, 0.15],
+        "frequency": [
+            {"frequency": 140, "amplitude": 0.9},
+            {"frequency": 280, "amplitude": 0.3},
+            {"frequency": 420, "amplitude": 0.8},
+            {"frequency": 560, "amplitude": 0.4}
+        ],
+        "volume": 89.0,
+        "instruments": [true, false, false, true, true]
     }
 ]
