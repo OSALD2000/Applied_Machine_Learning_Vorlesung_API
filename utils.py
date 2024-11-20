@@ -26,14 +26,7 @@
 #       Channel 8: Tilt Fine
 # {
 #     "timestamp": "00:02:36.000-00:02:36.500",
-#     "DMX_1_Pan": 110
-#     "DMX_2_Tilt": 130,           
-#     "DMX_3_Dimmer": 200,
-#     "DMX_4_Strobe": 150,         
-#     "DMX_5_Color": 51,            
-#     "DMX_6_Gobo": 128,           
-#     "DMX_7_Pan_Fine": 20,         
-#     "DMX_8_Tilt_Fine": 15         
+#     "values":[(channel, value)*20]        
 # }
 # 
 
@@ -42,20 +35,7 @@ def json_dmx_parser(song):
     
     for timestap in song:
         dmx_data = {}
-        dmx_data["timestamp"] = timestap["timestamp"]
-        dmx_data["DMX_1_Pan"] = 110
-        dmx_data["DMX_2_Tilt"] = 130
-        dmx_data["DMX_3_Dimmer"] = 200
-        dmx_data["DMX_4_Strobe"] = 150
-        dmx_data["DMX_5_Color"] = 51
-        dmx_data["DMX_6_Gobo"] = 128
-        dmx_data["DMX_7_Pan_Fine"] = 20
-        dmx_data["DMX_8_Tilt_Fine"] = 15
+        dmx_data["timestamp"] = timestap["timestamp"] 
         dmx_instructions.append(dmx_data)
 
     return dmx_instructions
-
-
-def move_the_head(dmx_instructions):
-    for instruction in dmx_instructions:
-        print(f"Moving the head to {instruction}")
