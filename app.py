@@ -1,20 +1,30 @@
-import asyncio
-import redis
 import json
-import os
+import redis
+import random
+import time
+from websocket import create_connection, WebSocketException
+from utils import json_dmx_parser
 
-from flask import Flask, jsonify, request
-from utils import json_dmx_parser, move_the_head
+ws = create_connection("ws://127.0.0.1:9999/qlcplusWS")
 
-app = Flask(__name__)
+def send_messages(package):
+        try:
+            for message in package:
+                if message['channel'] == 19 or  message['channel'] == 20 or  message['channel'] == 39 or  message['channel'] == 40:
+                    continue  
+                formated_message = f"CH|{message['channel']}|{message['value']}"
+                ws.send(formated_message)
+        except WebSocketException as e:
+            print(f"WebSocket Handshake: {e}")
+        except Exception as e:
+            print(f"Unexpected error: {e}")
 
-def connect_to_redis(host='localhost', port=6379, password=None):
+def connect_to_redis():
     try:
-        redis_client = redis.StrictRedis(
-            host=host,
-            port=port,
-            password=password,
-            decode_responses=True 
+        redis_client = redis.Redis(
+            host= '130.61.189.22',
+            port=6379,      
+            db=0       
         )
         
         redis_client.ping()
@@ -24,58 +34,25 @@ def connect_to_redis(host='localhost', port=6379, password=None):
         print(f"Failed to connect to Redis: {e}")
         return None
 
-REDIS_HOST = os.getenv("REDIS_HOST", "some-redis")
-REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))   
-REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None) 
+redis_client = connect_to_redis()
 
-redis_client = connect_to_redis(REDIS_HOST, REDIS_PORT, REDIS_PASSWORD)
+print(redis_client.get("2:HeavyIsTheCrow:so"))
 
-####################################################################################
-### Use this if you want to test the API                                           #
-### and store some data in the Redis database                                      #
-###                                                                                #
-### this will store test data located in test_data.json in the Redis database      #
-### the key will be the index of the data in the JSON file                         # 
-### and the value will be the data itself                                          #
-# with open('test_data.json') as f:                                                #               
-#     for idx, data in enumerate(json.load(f)):                                    #
-#         data_str = json.dumps(data)                                              #                   
-#         redis_client.set(idx, data_str)                                          #
-#         print(f"Stored {idx} in Redis")                                          #       
-####################################################################################
-
-with open('test_data.json') as f:                                                               
-    for idx, data in enumerate(json.load(f)):                                    
-        data_str = json.dumps(data)                                                               
-        redis_client.set(idx, data_str)                                          
-        print(f"Stored {idx} in Redis")    
-
-
-@app.route('/songs', methods=['GET'])
-def get_songs():
-    song_id = request.args.get('id')
-    
-    if not song_id:
-        return jsonify({"error": "No song ID provided"}), 400
-    
-    value = redis_client.get(song_id)
-    
-    if value is None:
-        return jsonify({"error": f"No data found for song ID: {song_id}"}), 404
-    
+while True:    
     try:
-        song = json.loads(value)
-    except json.JSONDecodeError:
-        return jsonify({"error": "Failed to decode JSON data"}), 500
-    
-    dmx_instructions = json_dmx_parser(song)
-    
-    asyncio.create_task(
-        move_the_head(dmx_instructions)
-    )
-    
-    return jsonify({"id": song_id, "message": "Data are parsed in dmx instructions and send to the moving head"}), 200
+        schedule = redis_client.get("2:HeavyIsTheCrown:so")
+        
+        song = redis_client.get("2:using the song name")
 
+        if schedule and schedule["st"] != "Stop":
+            # get the package using the transformation function
+            # Transfom the AI Json data to Pin instructions 
+            package = [{"channel": number, "value": int (random.random() * 255)} for number in range(1, 41)]
+            send_messages(package=package)
+            time.sleep(0.5)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    except KeyboardInterrupt:
+            package = [{"channel": number, "value": 0} for number in range(1, 41)]
+            send_messages(package=package)
+            break
+    
