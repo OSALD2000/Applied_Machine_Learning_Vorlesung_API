@@ -1,3 +1,4 @@
+import json
 import redis
 import random
 import time
@@ -34,12 +35,16 @@ def connect_to_redis():
         return None
 
 redis_client = connect_to_redis()
-print(redis_client.get("3:fixyou:so"))
+
+print(redis_client.get("2:HeavyIsTheCrow:so"))
 
 while True:    
     try:
-        # data = redis_client.get("3:fixyou:so")
-        # if data and data["Status"] != "Stop":
+        schedule = redis_client.get("2:HeavyIsTheCrown:so")
+        
+        song = redis_client.get("2:using the song name")
+
+        if schedule and schedule["st"] != "Stop":
             # get the package using the transformation function
             # Transfom the AI Json data to Pin instructions 
             package = [{"channel": number, "value": int (random.random() * 255)} for number in range(1, 41)]
@@ -50,3 +55,4 @@ while True:
             package = [{"channel": number, "value": 0} for number in range(1, 41)]
             send_messages(package=package)
             break
+    
