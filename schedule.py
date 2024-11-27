@@ -1,11 +1,6 @@
-import random
-import time
-from websocket import create_connection, WebSocketException
-from utils import json_dmx_parser, connect_to_redis, send_messages, load_song, calculate_start_point
+import json
+from utils import json_dmx_parser
 import enum
-import logging
-import time
-from datetime import datetime, timedelta, timezone
 
 class STATE(enum.Enum):
     NEW_SONG = "NewSong"
@@ -14,29 +9,34 @@ class STATE(enum.Enum):
     NO_CHANGE = "NoChange"
     NO_SONG = "NoSong"
     
-class Schedule():
-    def __init__(self):
+class ScheduleManager():
+    def __init__(self, redis_client):
         self.has_song = False
-        self.song = []
+        self.song_instructions = []
         self.idx = 0
         self.current_schedule = None
         self.old_schedule = None
-        
         self.state = STATE.NO_SONG
         self.old_state = STATE.NO_SONG
-        
+        self.redis_client = redis_client
         self.song_stop = False
         
     def compare_schedules(self) -> bool:
-        pass
+        return self.current_schedule['song_name'] == self.old_schedule ['song_name']
     
     def loud_song(self):
-        pass
-    
+        key = f"2:{self.current_schedule['song_name']}:song_features"
+        self.song_instructions = json_dmx_parser(json.loads(self.redis_client.get(key)))
+
     def calculate_start_point(self):
-        pass
+        self.idx = int(self.current_schedule['c']) * 2
     
-    def update(self, schedule, ws):
+    def get_chunk(self):
+        song_snippet = self.song_instructions[self.idx]
+        self.idx += 1
+        return song_snippet
+    
+    def update(self, schedule):
         self.old_state = self.state
         self.current_schedule = schedule
         
@@ -50,8 +50,8 @@ class Schedule():
             return
         
         self.state = STATE.NEW_SONG
-        self.current_schedule = schedule
-        
+        self.old_schedule = self.current_schedule
+
         if not self.has_song:
             self.loud_song()
             self.calculate_start_point()
@@ -65,4 +65,12 @@ class Schedule():
             
             if self.old_schedule["name"] != schedule["name"]:
                 self.state = STATE.NEW_SONG
+                self.song = []
+                self.idx = 0
+                self.has_song = False
+                self.old_schedule = None
+                self.old_state = STATE.NO_SONG
                 return
+            
+            if self.old_schedule["st"] == "Stop" and schedule["st"] == "Play":
+                self.state = STATE.START_AFTER_PAUSE

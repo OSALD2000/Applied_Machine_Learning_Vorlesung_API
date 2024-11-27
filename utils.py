@@ -48,8 +48,8 @@ def json_dmx_parser(song):
         dmx_data["DMX_2_Tilt"] = random.randint(0, 255)
         dmx_data["DMX_3_Dimmer"] = volume_to_dimmer(timestamp["volume"])
         dmx_data["DMX_4_Strobe"] = genre_to_strobe.get(timestamp["genre"], 0)
-        dmx_data["DMX_5_Color"] = mood_to_color.get(timestamp["mood"].index(max(timestamp["mood"])), (255, 255, 255))
-        dmx_data["DMX_6_Gobo"] = 0
+        dmx_data["DMX_5_Color"] = random.randint(0, 255) #mood_to_color.get(timestamp["mood"].index(max(timestamp["mood"])), (255, 255, 255))
+        dmx_data["DMX_6_Gobo"] = random.randint(0, 255)
         dmx_data["DMX_7_Pan_Fine"] = 0
         dmx_data["DMX_8_Tilt_Fine"] = 0
         dmx_data["DMX_9_Speed"] = bpm_to_speed(timestamp["bpm"])
@@ -86,7 +86,3 @@ def connect_to_redis():
         print(f"Failed to connect to Redis: {e}")
         return None
 
-
-
-def calculate_start_point(schedule):
-    pass
