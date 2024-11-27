@@ -1,42 +1,23 @@
-import json
-import redis
 import random
 import time
 from websocket import create_connection, WebSocketException
-from utils import json_dmx_parser
+from utils import json_dmx_parser, connect_to_redis, send_messages, load_song, calculate_start_point
+import enum
+import logging
+import time
+from datetime import datetime, timedelta, timezone
 
-ws = create_connection("ws://127.0.0.1:9999/qlcplusWS")
+logging.basicConfig(level=logging.INFO)
 
-def send_messages(package):
-        try:
-            for message in package:
-                if message['channel'] == 19 or  message['channel'] == 20 or  message['channel'] == 39 or  message['channel'] == 40:
-                    continue  
-                formated_message = f"CH|{message['channel']}|{message['value']}"
-                ws.send(formated_message)
-        except WebSocketException as e:
-            print(f"WebSocket Handshake: {e}")
-        except Exception as e:
-            print(f"Unexpected error: {e}")
-
-def connect_to_redis():
-    try:
-        redis_client = redis.Redis(
-            host= '130.61.189.22',
-            port=6379,      
-            db=0       
-        )
-        
-        redis_client.ping()
-        print("Connected to Redis!")
-        return redis_client
-    except redis.ConnectionError as e:
-        print(f"Failed to connect to Redis: {e}")
-        return None
-
+    
 redis_client = connect_to_redis()
 
-print(redis_client.get("2:HeavyIsTheCrow:so"))
+CURRENT_SONG_STATE = SONG_STATE.STOP
+OLD_SONG_STATE = SONG_STATE.STOP
+
+CURRENT_SCHEDULE_STATE = STATE.NO_SONG
+OLD_SCHEDULE_STATE = STATE.NO_SONG
+
 
 while True:    
     try:
@@ -48,7 +29,7 @@ while True:
             # get the package using the transformation function
             # Transfom the AI Json data to Pin instructions 
             package = [{"channel": number, "value": int (random.random() * 255)} for number in range(1, 41)]
-            send_messages(package=package)
+            send_messages(package=package, ws=ws)
             time.sleep(0.5)
 
     except KeyboardInterrupt:
@@ -56,3 +37,62 @@ while True:
             send_messages(package=package)
             break
     
+
+def main(args):
+    try:
+        ws = create_connection("ws://127.0.0.1:9999/qlcplusWS")
+        logging.info("Connected to QLC+ WebSocket")
+        
+        song = []
+        idx = 0
+        old_schedule = None
+        
+        while True:
+            try:
+                schedule = redis_client.get("2:HeavyIsTheCrown:so")
+                
+                if schedule == None or (schedule != None and schedule == old_schedule and CURRENT_SCHEDULE_STATE == STATE.NO_SONG):
+                    logging.info("No schedule found")
+                    time.sleep(0.5)
+                    continue
+                else:
+                    CURRENT_SONG_STATE = SONG_STATE(schedule["st"])
+                    CURRENT_SCHEDULE_STATE = STATE.NEW_SONG if (CURRENT_SCHEDULE_STATE == STATE.NO_SONG or CURRENT_SONG_STATE != OLD_SONG_STATE) else STATE.NO_CHANGE
+                    logging.info(f"Schedule: {schedule}")
+                
+                if not (CURRENT_SCHEDULE_STATE == STATE.NO_CHANGE):
+                    if CURRENT_SCHEDULE_STATE == STATE.NEW_SONG and OLD_SCHEDULE_STATE == STATE.NO_SONG:
+                        song = load_song(schedule["name"], redis_client)
+                    
+                    if CURRENT_SONG_STATE == SONG_STATE.STOP:
+                        continue
+                    
+                    while datetime.now(timezone.utc) < schedule['t']:
+                        time.sleep(0.1)
+
+                if idx >= len(song):
+                        CURRENT_SCHEDULE_STATE = STATE.NO_SONG
+
+                if CURRENT_SCHEDULE_STATE == STATE.NEW_SONG or CURRENT_SCHEDULE_STATE == STATE.START_AFTER_PAUSE:
+                    idx = calculate_start_point(schedule)
+                    
+                package = json_dmx_parser(song[idx])
+                
+                send_messages(package, ws)
+                
+                idx += 1
+                
+                old_schedule = schedule
+            
+                OLD_SCHEDULE_STATE = CURRENT_SCHEDULE_STATE
+                OLD_SONG_STATE = CURRENT_SONG_STATE
+                
+                time.sleep(0.2)
+                        
+            except KeyboardInterrupt:
+                logging.info("Closing connection to QLC+ WebSocket")
+                ws.close()
+            
+    except WebSocketException as  e1:
+        logging.error(f"WebSocket error: {e1}")
+        logging.info("Reconnecting to QLC+ WebSocket")
