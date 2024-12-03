@@ -1,36 +1,9 @@
-#   {
-#      "timestamp": "00:02:36.000-00:02:36.500",
-#      "bpm": 120,
-#      "genre": "ToDo",
-#      "mood": [0.2, 0.1, 0.15, 0.2, 0.25, 0.1],
-#      "frequency": [
-#          {"frequency": 100, "amplitude": 0.7},
-#          {"frequency": 200, "amplitude": 0.5},
-#          {"frequency": 300, "amplitude": 0.4},
-#          {"frequency": 400, "amplitude": 0.6}
-#      ],
-#      "volume": 83.0,
-#      "instruments": [true, false, true, true, false]
-#  }
-
-# the Json file should parsed to DMX Instructions
-# We will use the 8-Port modes for the DMX
-# 8-Port mode:
-#       Channel 1: Pan Controls the horizontal movement of the head
-#       Channel 2: Tilt Controls the vertical movement of the head
-#       Channel 3: Dimmer Controls the brightness of the light
-#       Channel 4: Strobe Controls the speed of the strobe effect
-#       Channel 5: Color Controls the color of the light
-#       Channel 6: Gobo Controls the gobo pattern
-#       Channel 7: Pan Fine 
-#       Channel 8: Tilt Fine
-# {
-#     "timestamp": "00:02:36.000-00:02:36.500",
-#     "values":[(channel, value)*20]        
-# }
-# 
-
 import random
+import json
+import redis
+import random
+import time
+from websocket import WebSocketException
 
 mood_to_color = {
     1: (236, 236, 236), # neutral: white
@@ -108,3 +81,33 @@ def json_dmx_parser(song):
         dmx_instructions.append(dmx_data)
 
     return dmx_instructions
+
+
+
+def send_messages(package, ws):
+        try:
+            for message in package:
+                if message['channel'] == 19 or  message['channel'] == 20 or  message['channel'] == 39 or  message['channel'] == 40:
+                    continue  
+                formated_message = f"CH|{message['channel']}|{message['value']}"
+                ws.send(formated_message)
+        except WebSocketException as e:
+            print(f"WebSocket Handshake: {e}")
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+
+def connect_to_redis():
+    try:
+        redis_client = redis.Redis(
+            host= '130.61.189.22',
+            port=6379,      
+            db=0       
+        )
+        
+        redis_client.ping()
+        print("Connected to Redis!")
+        return redis_client
+    except redis.ConnectionError as e:
+        print(f"Failed to connect to Redis: {e}")
+        return None
+

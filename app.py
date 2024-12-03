@@ -1,56 +1,47 @@
-import json
-import redis
 import random
 import time
 from websocket import create_connection, WebSocketException
-from utils import json_dmx_parser
+from utils import connect_to_redis, send_messages
+import enum
+import logging
+import time
+from schedule import ScheduleManager, STATE
+from datetime import datetime, timedelta, timezone
+
+schedule_example ={
+            "song_name":"badguy",
+            "c": 25,
+            "d": 100,
+            "st":"Play"
+}
 
 ws = create_connection("ws://127.0.0.1:9999/qlcplusWS")
+logging.basicConfig(level=logging.INFO)
 
-def send_messages(package):
-        try:
-            for message in package:
-                if message['channel'] == 19 or  message['channel'] == 20 or  message['channel'] == 39 or  message['channel'] == 40:
-                    continue  
-                formated_message = f"CH|{message['channel']}|{message['value']}"
-                ws.send(formated_message)
-        except WebSocketException as e:
-            print(f"WebSocket Handshake: {e}")
-        except Exception as e:
-            print(f"Unexpected error: {e}")
-
-def connect_to_redis():
-    try:
-        redis_client = redis.Redis(
-            host= '130.61.189.22',
-            port=6379,      
-            db=0       
-        )
-        
-        redis_client.ping()
-        print("Connected to Redis!")
-        return redis_client
-    except redis.ConnectionError as e:
-        print(f"Failed to connect to Redis: {e}")
-        return None
-
+    
 redis_client = connect_to_redis()
 
-print(redis_client.get("2:HeavyIsTheCrow:so"))
+schedule_manager = ScheduleManager(redis_client)
 
 while True:    
     try:
-        schedule = redis_client.get("2:HeavyIsTheCrown:so")
+        schedule = schedule_example
+        schedule_manager.update(schedule=schedule)
+        chunk = schedule_manager.get_chunk()
+        package = [
+             {"channel" : 1, "value": chunk["DMX_1_Pan"]},
+             {"channel" : 2, "value": chunk["DMX_2_Tilt"]},
+             {"channel" : 3, "value": chunk["DMX_3_Dimmer"]},
+             {"channel" : 4, "value": chunk["DMX_4_Strobe"]},
+             {"channel" : 5, "value": chunk["DMX_5_Color"]},
+             {"channel" : 6, "value": chunk["DMX_6_Gobo"]},
+             {"channel" : 7, "value": chunk["DMX_7_Pan_Fine"]},
+             {"channel" : 8, "value": chunk["DMX_8_Tilt_Fine"]}
+        ]
+
+        send_messages(package=package, ws=ws)
+        time.sleep(0.5)
         
-        song = redis_client.get("2:using the song name")
-
-        if schedule and schedule["st"] != "Stop":
-            # get the package using the transformation function
-            # Transfom the AI Json data to Pin instructions 
-            package = [{"channel": number, "value": int (random.random() * 255)} for number in range(1, 41)]
-            send_messages(package=package)
-            time.sleep(0.5)
-
     except KeyboardInterrupt:
             package = [{"channel": number, "value": 0} for number in range(1, 41)]
             send_messages(package=package)
