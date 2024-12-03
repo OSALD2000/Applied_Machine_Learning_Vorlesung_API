@@ -42,6 +42,19 @@ genre_to_gobo = {
     'rock': 11
 }
 
+genre_to_wait_time = {
+    'blues': 4,
+    'classical': 4,
+    'country': 4,
+    'disco': 2,
+    'hiphop': 3,
+    'jazz': 4,
+    'metal': 1,
+    'pop': 3,
+    'reggae': 4,
+    'rock': 2
+}
+
 def angle_to_dmx(angle):
     return 170 + angle * 80 / 180
 
@@ -53,15 +66,21 @@ def bpm_to_speed(bpm):
 
 def json_dmx_parser(song):
     dmx_instructions = []
+    wait_time = 0
+    pan_angle = random.randint(-180, 180)
+    tilt_angle = random.randint(0, 255)
     
     for timestamp in song:
         dmx_data = {}
 
-        pan_angle = random.randint(-180, 180)
+        if wait_time >= genre_to_wait_time.get(timestamp["genre"], 1):
+            pan_angle = random.randint(-180, 180)
+            tilt_angle = random.randint(0, 255)
+            wait_time = 0
 
         dmx_data["DMX_1_Pan"] = angle_to_dmx(pan_angle)
         dmx_data["DMX_2"] = 0
-        dmx_data["DMX_3_Tilt"] = random.randint(0, 255)
+        dmx_data["DMX_3_Tilt"] = tilt_angle
         dmx_data["DMX_4"] = 0
         dmx_data["DMX_5_Speed"] = bpm_to_speed(timestamp["bpm"])
         dmx_data["DMX_6_Dimmer"] = volume_to_dimmer(timestamp["volume"])
@@ -102,6 +121,7 @@ def json_dmx_parser(song):
         dmx_data["DMX_40"] = 0
 
         dmx_instructions.append(dmx_data)
+        wait_time += 1
 
     return dmx_instructions
 
