@@ -56,8 +56,10 @@ def json_dmx_parser(song):
     
     for timestamp in song:
         dmx_data = {}
-        # dmx_data["timestamp"] = timestamp["timestamp"]
-        dmx_data["DMX_1_Pan"] = angle_to_dmx(random.randint(-180, 180))
+
+        pan_angle = random.randint(-180, 180)
+
+        dmx_data["DMX_1_Pan"] = angle_to_dmx(pan_angle)
         dmx_data["DMX_2"] = 0
         dmx_data["DMX_3_Tilt"] = random.randint(0, 255)
         dmx_data["DMX_4"] = 0
@@ -77,6 +79,27 @@ def json_dmx_parser(song):
         dmx_data["DMX_18"] = 0
         dmx_data["DMX_19"] = 0
         dmx_data["DMX_20"] = 0
+
+        dmx_data["DMX_21_Pan"] = angle_to_dmx(-pan_angle)
+        dmx_data["DMX_22"] = 0
+        dmx_data["DMX_23_Tilt"] = dmx_data["DMX_3_Tilt"]
+        dmx_data["DMX_24"] = 0
+        dmx_data["DMX_25_Speed"] = dmx_data["DMX_5_Speed"]
+        dmx_data["DMX_26_Dimmer"] = dmx_data["DMX_6_Dimmer"]
+        dmx_data["DMX_27_Strobe"] = dmx_data["DMX_7_Strobe"]
+        dmx_data["DMX_28_Color_R"] = dmx_data["DMX_8_Color_R"]
+        dmx_data["DMX_29_Color_G"] = dmx_data["DMX_9_Color_G"]
+        dmx_data["DMX_30_Color_B"] = dmx_data["DMX_10_Color_B"]
+        dmx_data["DMX_31_Color_W"] = 0
+        dmx_data["DMX_32"] = 0
+        dmx_data["DMX_33"] = 0
+        dmx_data["DMX_34_Spot_Dimmer"] = dmx_data["DMX_14_Spot_Dimmer"]
+        dmx_data["DMX_35_Spot_Strobe"] = dmx_data["DMX_15_Spot_Strobe"]
+        dmx_data["DMX_36"] = 0
+        dmx_data["DMX_37"] = dmx_data["DMX_17"]
+        dmx_data["DMX_38"] = 0
+        dmx_data["DMX_39"] = 0
+        dmx_data["DMX_40"] = 0
 
         dmx_instructions.append(dmx_data)
 
