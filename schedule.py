@@ -1,6 +1,9 @@
 import json
 from utils import json_dmx_parser
 import enum
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 class STATE(enum.Enum):
     NEW_SONG = "NewSong"
@@ -8,6 +11,7 @@ class STATE(enum.Enum):
     START_AFTER_PAUSE = "StartAfterPause"
     NO_CHANGE = "NoChange"
     NO_SONG = "NoSong"
+    END = "End"
     
 class ScheduleManager():
     def __init__(self, redis_client):
@@ -22,11 +26,16 @@ class ScheduleManager():
         self.song_stop = False
         
     def compare_schedules(self) -> bool:
-        return self.current_schedule['song_name'] == self.old_schedule ['song_name']
+        return self.current_schedule['song_name'] == self.old_schedule['song_name'] and \
+                self.current_schedule['c'] == self.old_schedule['c'] 
     
     def loud_song(self):
-        key = f"2:{self.current_schedule['song_name']}:song_features"
-        self.song_instructions = json_dmx_parser(json.loads(self.redis_client.get(key)))
+        #key = f"2:{self.current_schedule['song_name']}"
+        with open("test_data.json") as f:
+            self.song_instructions = json_dmx_parser(json.load(f))
+        msg = f"song_instructions len : {len(self.song_instructions)}"
+        print(msg)
+
 
     def calculate_start_point(self):
         self.idx = int(self.current_schedule['c']) * 2
@@ -45,10 +54,18 @@ class ScheduleManager():
             self.state = STATE.NO_SONG
             return
         
+        if self.state != STATE.NO_SONG and self.state != STATE.END and self.idx >= len(self.song_instructions):
+            self.state = STATE.END
+            self.song = []
+            self.has_song = False
+            self.old_state = None
+            return
+
         if self.old_schedule != None and self.compare_schedules():
             self.state = STATE.NO_CHANGE
             return
         
+
         self.state = STATE.NEW_SONG
         self.old_schedule = self.current_schedule
 
@@ -74,3 +91,4 @@ class ScheduleManager():
             
             if self.old_schedule["st"] == "Stop" and schedule["st"] == "Play":
                 self.state = STATE.START_AFTER_PAUSE
+        
