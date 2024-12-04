@@ -3,7 +3,9 @@ from utils import json_dmx_parser
 import enum
 import logging
 
-logging.basicConfig(level=logging.INFO)
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 class STATE(enum.Enum):
     NEW_SONG = "NewSong"
@@ -51,25 +53,39 @@ class ScheduleManager():
         self.idx += 1
         return song_snippet
     
+    def reset_song_state(self, new_state):
+        self.state = new_state
+        self.idx = 0
+        self.stop_idx = 0
+        self.song = []
+        self.has_song = False
+        self.old_state = None
+
+    def is_end_of_song(self):
+        return (
+            (self.state not in {STATE.NO_SONG, STATE.END} and self.idx >= len(self.song_instructions)) or 
+            (self.idx != 0 and self.stop_idx != 0 and self.idx == self.stop_idx)
+        )
+
+    def prepare_new_song(self):
+        self.loud_song()
+        self.calculate_start_point()
+        self.calculate_stop_point()
+        self.has_song = True
+
     def update(self, schedule):
         self.old_state = self.state
         self.current_schedule = schedule
         
-        if schedule == None:
-            self.has_song = False
-            self.state = STATE.NO_SONG
+        if schedule is None:
+            self.reset_song_state(STATE.NO_SONG)
             return
         
-        if (self.state != STATE.NO_SONG and self.state != STATE.END and self.idx >= len(self.song_instructions)) or ((self.idx != 0 and self.stop_idx != 0) and self.idx == self.stop_idx):
-            self.state = STATE.END
-            self.idx = 0
-            self.stop_idx = 0
-            self.song = []
-            self.has_song = False
-            self.old_state = None
+        if self.is_end_of_song():
+            self.reset_song_state(STATE.END)
             return
         
-        if self.old_schedule != None and self.compare_schedules():
+        if self.old_schedule is not None and self.compare_schedules():
             self.state = STATE.NO_CHANGE
             return
         
@@ -77,26 +93,17 @@ class ScheduleManager():
         self.old_schedule = self.current_schedule
 
         if not self.has_song:
-            self.loud_song()
-            self.calculate_start_point()
-            self.calculate_stop_point()
-            self.has_song = True
+            self.prepare_new_song()
             return
         
-        if self.old_state == STATE.NO_CHANGE or self.old_state == STATE.NEW_SONG:
-            if schedule["st"] == "STOP":
+        if self.old_state in {STATE.NO_CHANGE, STATE.NEW_SONG}:
+            if schedule["st"].upper() == "STOP":
                 self.song_stop = True
                 return
             
-            if self.old_schedule["name"] != schedule["name"]:
-                self.state = STATE.NEW_SONG
-                self.song = []
-                self.idx = 0
-                self.has_song = False
-                self.old_schedule = None
-                self.old_state = STATE.NO_SONG
+            if self.old_schedule["song_name"] != schedule["song_name"]:
+                self.reset_song_state(STATE.NEW_SONG)
                 return
             
-            if self.old_schedule["st"] == "Stop" and schedule["st"] == "Play":
+            if self.old_schedule["st"].upper() == "STOP" and schedule["st"].upper() == "PLAY":
                 self.state = STATE.START_AFTER_PAUSE
-        
