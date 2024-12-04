@@ -18,6 +18,7 @@ class ScheduleManager():
         self.has_song = False
         self.song_instructions = []
         self.idx = 0
+        self.stop_idx = 0
         self.current_schedule = None
         self.old_schedule = None
         self.state = STATE.NO_SONG
@@ -27,7 +28,8 @@ class ScheduleManager():
         
     def compare_schedules(self) -> bool:
         return self.current_schedule['song_name'] == self.old_schedule['song_name'] and \
-                self.current_schedule['c'] == self.old_schedule['c'] 
+                self.current_schedule['c'] == self.old_schedule['c']  and \
+                self.current_schedule['d'] == self.old_schedule['d']
     
     def loud_song(self):
         #key = f"2:{self.current_schedule['song_name']}"
@@ -39,6 +41,10 @@ class ScheduleManager():
 
     def calculate_start_point(self):
         self.idx = int(self.current_schedule['c']) * 2
+
+    def calculate_stop_point(self):
+        self.stop_idx = int(self.current_schedule['d']) * 2
+    
     
     def get_chunk(self):
         song_snippet = self.song_instructions[self.idx]
@@ -54,24 +60,26 @@ class ScheduleManager():
             self.state = STATE.NO_SONG
             return
         
-        if self.state != STATE.NO_SONG and self.state != STATE.END and self.idx >= len(self.song_instructions):
+        if (self.state != STATE.NO_SONG and self.state != STATE.END and self.idx >= len(self.song_instructions)) or ((self.idx != 0 and self.stop_idx != 0) and self.idx == self.stop_idx):
             self.state = STATE.END
+            self.idx = 0
+            self.stop_idx = 0
             self.song = []
             self.has_song = False
             self.old_state = None
             return
-
+        
         if self.old_schedule != None and self.compare_schedules():
             self.state = STATE.NO_CHANGE
             return
         
-
         self.state = STATE.NEW_SONG
         self.old_schedule = self.current_schedule
 
         if not self.has_song:
             self.loud_song()
             self.calculate_start_point()
+            self.calculate_stop_point()
             self.has_song = True
             return
         

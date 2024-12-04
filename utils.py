@@ -2,6 +2,52 @@ import random
 import redis
 import random
 from websocket import WebSocketException
+import math
+
+# Define mood-to-color mapping
+mood_to_color = {
+    1: (236, 236, 236),  # neutral: white
+    2: (98, 154, 231),   # calm: blue
+    3: (255, 221, 68),   # happy: yellow
+    4: (43, 61, 149),    # sad: purple
+    5: (214, 39, 40),    # angry: red
+    6: (119, 17, 202),   # fearful: green
+    7: (119, 227, 155),  # disgust: brown
+    8: (255, 127, 14)    # surprised: pink
+}
+
+ranges = [
+    (1, 23, "weiß"),       
+    (25, 49, "rot"),       
+    (51, 74, "gelb"),      
+    (76, 99, "halbblau"), 
+    (101, 124, "grün"),    
+    (126, 149, "bernsteinfarbe"),
+    (151, 174, "violett"),
+    (176, 199, "blau")
+]
+
+
+def euclidean_distance(color1, color2):
+    return math.sqrt(sum((c1 - c2) ** 2 for c1, c2 in zip(color1, color2)))
+
+def get_closest_mood_color(input_color):
+    closest_mood = None
+    min_distance = float('inf')
+    
+    for mood, color in mood_to_color.items():
+        distance = euclidean_distance(input_color, color)
+        if distance < min_distance:
+            min_distance = distance
+            closest_mood = mood
+    
+    mood_index = closest_mood - 1
+    return ranges[mood_index]
+
+def color_to_value(input_color):
+    closest_range = get_closest_mood_color(input_color)
+    return closest_range
+
 
 mood_to_color = {
     1: (236, 236, 236), # neutral: white
@@ -18,26 +64,26 @@ genre_to_strobe = {
     'blues': 0,
     'classical': 0,
     'country': 0,
-    'disco': 5,
-    'hiphop': 2,
+    'disco': 10,
+    'hiphop': 5,
     'jazz': 0,
-    'metal': 15,
+    'metal': 20,
     'pop': 5,
     'reggae': 0,
-    'rock': 2
+    'rock': 10
 }
 
 genre_to_gobo = {
-    'blues': 61,
-    'classical': 61,
-    'country': 71,
-    'disco': 51,
-    'hiphop': 41,
-    'jazz': 61,
-    'metal': 41,
-    'pop': 21,
-    'reggae': 31,
-    'rock': 11
+    'blues': [61, 41, 21],
+    'classical': [61, 11, 51],
+    'country': [71, 31, 41],
+    'disco': [51, 71, 61],
+    'hiphop': [41, 51, 21],
+    'jazz': [61, 31, 11],
+    'metal': [41, 71, 61],
+    'pop': [21, 41, 11],
+    'reggae': [31, 21, 51],
+    'rock': [11, 41, 61]
 }
 
 def angle_to_dmx(angle):
@@ -47,26 +93,36 @@ def volume_to_dimmer(volume):
     return min(abs(volume)*10, 255)
 
 def bpm_to_speed(bpm):
-    return max(min((bpm+(bpm*0.35)), 255), 0)
+    return max(min((bpm-(bpm*0.5)), 3), 0)
 
 def json_dmx_parser(song):
     dmx_instructions = []
-    
+    idx = 0
+    gobo_idx = 0
+
     for timestamp in song:
         dmx_data = {}
 
-        pan_angle = (random.random() * 40)
+        pan_angle = int(random.random() * 45)
 
-        r = mood_to_color.get(timestamp["m"].index(max(timestamp["m"])), (255, 255, 255))[0]
-        g = mood_to_color.get(timestamp["m"].index(max(timestamp["m"])), (255, 255, 255))[1]
-        b = mood_to_color.get(timestamp["m"].index(max(timestamp["m"])), (255, 255, 255))[2]
+        r = mood_to_color.get(timestamp["m"].index(max(timestamp["m"])), (255, 255, 255))[0] + int(random.randint(-1, 1))
+        g = mood_to_color.get(timestamp["m"].index(max(timestamp["m"])), (255, 255, 255))[1] + int(random.randint(-1, 1))
+        b = mood_to_color.get(timestamp["m"].index(max(timestamp["m"])), (255, 255, 255))[2] + int(random.randint(-1, 1))
+
         dimmer = volume_to_dimmer(timestamp["vo"])
-        dimmer_spot = int(random.random()*255)
+        dimmer_spot = int(random.random() * color_to_value(mood_to_color.get(timestamp["m"].index(max(timestamp["m"])), (255, 255, 255)))[1])
+        
+        if idx == 16:
+            idx = 0
+            gobo_idx += 1
+            gobo_idx = 0 if gobo_idx == 3 else gobo_idx
+
+        gobo = genre_to_gobo.get(timestamp["g"], 0)[gobo_idx]
 
         dmx_data["DMX_1_Pan"] = angle_to_dmx(-pan_angle)
-        dmx_data["DMX_2"] = angle_to_dmx(-pan_angle)
-        dmx_data["DMX_3_Tilt"] = random.randint(0, 80)
-        dmx_data["DMX_4"] = random.randint(0, 80)
+        dmx_data["DMX_2"] = 0
+        dmx_data["DMX_3_Tilt"] = random.randint(0, 90)
+        dmx_data["DMX_4"] = 0
         dmx_data["DMX_5_Speed"] = bpm_to_speed(timestamp["b"])
         dmx_data["DMX_6_Dimmer"] = dimmer
         dmx_data["DMX_7_Strobe"] = genre_to_strobe.get(timestamp["g"], 0)
@@ -79,15 +135,15 @@ def json_dmx_parser(song):
         dmx_data["DMX_14_Spot_Dimmer"] = 255
         dmx_data["DMX_15_Spot_Strobe"] = 0
         dmx_data["DMX_16"] = dimmer_spot
-        dmx_data["DMX_17"] = genre_to_gobo.get(timestamp["g"], 0)
+        dmx_data["DMX_17"] = gobo
         dmx_data["DMX_18"] = 255
         dmx_data["DMX_19"] = 0
         dmx_data["DMX_20"] = 0
 
         dmx_data["DMX_21_Pan"] = angle_to_dmx(pan_angle)
-        dmx_data["DMX_22"] = angle_to_dmx(pan_angle)
+        dmx_data["DMX_22"] = 0
         dmx_data["DMX_23_Tilt"] = dmx_data["DMX_3_Tilt"]
-        dmx_data["DMX_24"] = dmx_data["DMX_4"]
+        dmx_data["DMX_24"] = 0
         dmx_data["DMX_25_Speed"] = dmx_data["DMX_5_Speed"]
         dmx_data["DMX_26_Dimmer"] = dimmer
         dmx_data["DMX_27_Strobe"] = dmx_data["DMX_7_Strobe"]
@@ -100,13 +156,14 @@ def json_dmx_parser(song):
         dmx_data["DMX_34_Spot_Dimmer"] = 255
         dmx_data["DMX_35_Spot_Strobe"] = 0
         dmx_data["DMX_36"] = dimmer_spot
-        dmx_data["DMX_37"] = dmx_data["DMX_17"]
+        dmx_data["DMX_37"] = gobo
         dmx_data["DMX_38"] = 255
         dmx_data["DMX_39"] = 0
         dmx_data["DMX_40"] = 0
         
         dmx_instructions.append(dmx_data)
 
+        idx += 1
     return dmx_instructions
 
 

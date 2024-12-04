@@ -1,8 +1,6 @@
-import random
 import time
 from websocket import create_connection, WebSocketException
 from utils import connect_to_redis, send_messages, create_package
-import enum
 import logging
 import time
 from schedule import ScheduleManager, STATE
@@ -11,12 +9,13 @@ from datetime import datetime, timedelta, timezone
 schedule_example = {
             "t": time.time(),
             "song_name":"test",
-            "c": 90,
-            "d": 100,
+            "c": 1,
+            "d": 5,
             "st":"Play"
 }
 
 ws = create_connection("ws://127.0.0.1:9999/qlcplusWS")
+
 logging.basicConfig(level=logging.INFO)
 
     
@@ -41,19 +40,21 @@ while True:
             print(msg)
 
             send_messages(package=package, ws=ws)
-            time.sleep(0.6)
+            time.sleep(0.3)
         
         if schedule_manager.state == STATE.END:
             print("END")
             reset_package = [{"channel": number, "value": 0} for number in range(1, 41)]
             send_messages(package=reset_package, ws=ws)
-            user_input = int(input("new start "))
-            if user_input != 0:
+            user_input_start = int(input("new start "))
+            user_input_end = int(input("new end "))
+
+            if user_input_start != 0:
                  schedule = {
                                 "t": time.time(),
                                 "song_name":"test",
-                                "c": user_input,
-                                "d": 100,
+                                "c": user_input_start,
+                                "d": user_input_end,
                                 "st":"Play"
                     }
         
