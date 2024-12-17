@@ -84,7 +84,7 @@ class ScheduleManager():
             self.reset_song_state(STATE.END)
             return
         
-        if ((self.old_schedule is not None and self.compare_schedules())) or (self.current_schedule['song_name'] in self.songs):
+        if (((self.old_schedule is not None or self.current_schedule['song_name'] in self.songs) and self.compare_schedules())) :
             self.state = STATE.NO_CHANGE
             return
         
