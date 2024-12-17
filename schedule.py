@@ -27,6 +27,7 @@ class ScheduleManager():
         self.old_state = STATE.NO_SONG
         self.redis_client = redis_client
         self.song_stop = False
+        self.songs = []
         
     def compare_schedules(self) -> bool:
         return self.current_schedule['song_name'] == self.old_schedule['song_name'] and \
@@ -34,6 +35,7 @@ class ScheduleManager():
                 self.current_schedule['d'] == self.old_schedule['d']
     
     def loud_song(self):
+        self.songs.append(self.current_schedule['song_name'])
         key = f"2:{self.current_schedule['song_name']}"
         obj = self.redis_client.get(key)
         self.song_instructions = json_dmx_parser(json.loads(obj))
@@ -82,7 +84,7 @@ class ScheduleManager():
             self.reset_song_state(STATE.END)
             return
         
-        if self.old_schedule is not None and self.compare_schedules():
+        if ((self.old_schedule is not None and self.compare_schedules())) or (self.current_schedule['song_name'] in self.songs):
             self.state = STATE.NO_CHANGE
             return
         

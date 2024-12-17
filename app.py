@@ -47,6 +47,35 @@ def create_reset_package():
     
     return package
 
+def create_rest_package_leds():
+       return {
+            "seg": {
+                "ix": 255,
+                "sx": min(led_package[0]["value"] + 40, 255),
+                "col": [
+                [
+                    255,
+                    255,
+                    255,
+                    0
+                ],
+                    [
+                    255,
+                    255,
+                    255,
+                    0
+                ],  [
+                    255,
+                    255,
+                    255,
+                    0
+                ]
+                ]
+            },
+            "v": True,
+            "time": time.time()
+        }
+   
 obj = redis_client.get("3:sc")
 if obj:
     schedule = json.loads(obj)
@@ -80,6 +109,7 @@ try:
         if schedule_manager.state == STATE.END:
             logging.info("Song ended. Resetting channels.")
             send_messages_moving_heads(package=create_reset_package(), ws=ws_1)
+            send_messages_leds(package=create_rest_package_leds(), led_package=led_package, ws=ws_2)
 
         obj = redis_client.get("3:sc")
         if obj:
