@@ -4,7 +4,8 @@ import random
 from websocket import WebSocketException
 import math
 import logging
-import aiohttp
+import json
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -108,8 +109,8 @@ def json_dmx_parser(song):
     for song_chunk in song:
         dmx_data = {}
 
-        pan_angle = int(random.random() * 45)
-        
+        pan_angle = int(random.random() * 25) + min(int((song_chunk["b"] / 255) * random.random() * 250), 25)
+        tilt_angle = int(random.random() * 60) + min(int((song_chunk["b"] / 255) * random.random() * 250), 30)
         mood_index = song_chunk["m"].index(max(song_chunk["m"]))
         mood_color = mood_to_color.get(mood_index + 1, (255, 255, 255))
 
@@ -129,7 +130,7 @@ def json_dmx_parser(song):
 
         dmx_data["DMX_1_Pan"] = angle_to_dmx(-pan_angle)
         dmx_data["DMX_2"] = 0
-        dmx_data["DMX_3_Tilt"] = random.randint(0, 90)
+        dmx_data["DMX_3_Tilt"] = tilt_angle
         dmx_data["DMX_4"] = 0
         dmx_data["DMX_5_Speed"] = bpm_to_speed(song_chunk["b"])
         dmx_data["DMX_6_Dimmer"] = dimmer
@@ -150,7 +151,7 @@ def json_dmx_parser(song):
 
         dmx_data["DMX_21_Pan"] = angle_to_dmx(pan_angle)
         dmx_data["DMX_22"] = 0
-        dmx_data["DMX_23_Tilt"] = random.randint(0, 90)
+        dmx_data["DMX_23_Tilt"] = tilt_angle
         dmx_data["DMX_24"] = 0
         dmx_data["DMX_25_Speed"] = bpm_to_speed(song_chunk["b"])
         dmx_data["DMX_26_Dimmer"] = dimmer
@@ -168,7 +169,7 @@ def json_dmx_parser(song):
         dmx_data["DMX_38"] = 255
         dmx_data["DMX_39"] = 0
         dmx_data["DMX_40"] = 0
-        
+        dmx_data["Speed_LED"] = int(song_chunk["b"])
         dmx_instructions.append(dmx_data)
 
         idx += 1
@@ -188,47 +189,58 @@ def send_messages_moving_heads(package, ws):
         except Exception as e:
             print(f"Unexpected error: {e}")
 
-async def send_messages_leds(package):
-    url = "http://192.168.171.27/win"
-    
-    brightness = package[5]['value']
-    red = package[7]['value']
-    green = package[8]['value']
-    blue = package[9]['value']
-    effect = random.randint(10, 90)
-    effect_speed =  255 - package[4]['value']
-    effect_intensity = package[6]['value']
-    turn_on = brightness > 0
-    
-    params = {
-        'T': turn_on,
-        'A': brightness,  # Brightness (0-255)
-        'R': red,         # Red (0-255)
-        'G': green,       # Green (0-255)
-        'B': blue,        # Blue (0-255)
-        'FX': effect,     # Effect Index (0-101)
-        'SX': effect_speed,  # Effect Speed (0-255)
-        'IX': effect_intensity  # Effect Intensity (0-255)
-    }
-    
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(url, params=params) as response:
-                if response.status == 200:
-                    logging.info("LED settings updated successfully.")
-                else:
-                    logging.warning(f"Failed to update LED settings. Status code: {response.status}")
-        except aiohttp.ClientError as e:
-            logging.error(f"Error while sending LED settings: {e}")
+def send_messages_leds(package, led_package, ws):
+    r = package[7]["value"]
+    g = package[8]["value"]
+    b = package[9]["value"]
 
-        
+    r_1 = min(255, max(0, r + random.randint(-125, 125)))
+    g_1 = min(255, max(0, g + random.randint(-125, 125)))
+    b_1 = min(255, max(0, b + random.randint(-125, 125)))
+    r_2 = min(255, max(0, r + random.randint(-125, 125)))
+    g_2 = min(255, max(0, g + random.randint(-125, 125)))
+    b_2 = min(255, max(0, b + random.randint(-125, 125))) 
+    r_3 = min(255, max(0, r + random.randint(-125, 125)))
+    g_3 = min(255, max(0, g + random.randint(-125, 125)))
+    b_3 = min(255, max(0, b + random.randint(-125, 125)))
+
+    pattern = {
+            "seg": {
+                "ix": 255,
+                "sx": min(led_package[0]["value"] + 40, 255),
+                "col": [
+                [
+                    int(r_1),
+                    int(g_1),
+                    int(b_1),
+                    0
+                ],
+                    [
+                    int(r_2),
+                    int(g_2),
+                    int(b_2),
+                    0
+                ],  [
+                    int(r_3),
+                    int(g_3),
+                    int(b_3),
+                    0
+                ]
+                ]
+            },
+            "v": True,
+            "time": time.time()
+        }
+   
+    ws.send(json.dumps(pattern))
 
 def connect_to_redis():
     try:
         redis_client = redis.Redis(
-            host= '130.61.189.22',
+            host= '132.145.229.53',
             port=6379,      
-            db=0       
+            db=0,
+            password="!/=?aml-redis-2024-projct"
         )
         redis_client.ping()
         logging.info("Connected to Redis.")
@@ -237,7 +249,8 @@ def connect_to_redis():
         logging.info(f"Failed to connect to Redis: {e}")        
         return None
 
-
+def upload_done_signale(redis, name):
+    pass
 
 def create_package(dmx_data):
     return [
@@ -281,4 +294,6 @@ def create_package(dmx_data):
     {"channel": 38, "value": int(dmx_data["DMX_38"])},
     {"channel": 39, "value": int(dmx_data["DMX_39"])},
     {"channel": 40, "value": int(dmx_data["DMX_40"])},
+], [
+    {"channel": "sx", "value": int(dmx_data["Speed_LED"])}
 ]

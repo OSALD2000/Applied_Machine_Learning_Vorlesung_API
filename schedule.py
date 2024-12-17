@@ -34,12 +34,9 @@ class ScheduleManager():
                 self.current_schedule['d'] == self.old_schedule['d']
     
     def loud_song(self):
-        #key = f"2:{self.current_schedule['song_name']}"
-        with open("test_data.json") as f:
-            self.song_instructions = json_dmx_parser(json.load(f))
-        msg = f"song_instructions len : {len(self.song_instructions)}"
-        print(msg)
-
+        key = f"2:{self.current_schedule['song_name']}"
+        obj = self.redis_client.get(key)
+        self.song_instructions = json_dmx_parser(json.loads(obj))
 
     def calculate_start_point(self):
         self.idx = int(self.current_schedule['c']) * 2
